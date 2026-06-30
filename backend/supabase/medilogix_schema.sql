@@ -37,11 +37,11 @@ create table if not exists public.patient_test_records (
   id uuid primary key default gen_random_uuid(),
   doctor_id uuid not null references public.doctors(id) on delete cascade,
   patient_file_id text not null,
-  patient_name text not null,
-  gender text not null check (gender in ('Female', 'Male', 'Other')),
-  age integer not null check (age > 0),
+  patient_name text not null default '',
+  gender text not null default '' check (gender in ('', 'Female', 'Male', 'Other')),
+  age integer check (age is null or age > 0),
   case_history text not null default '',
-  description text not null,
+  description text not null default '',
   test_date text not null,
   test_duration text not null,
   peak_psi numeric not null,
@@ -54,7 +54,17 @@ create table if not exists public.patient_test_records (
 );
 
 alter table public.patient_test_records
-  add column if not exists case_history text not null default '';
+  add column if not exists case_history text not null default '',
+  alter column patient_name set default '',
+  alter column gender set default '',
+  alter column age drop not null,
+  alter column description set default '';
+
+alter table public.patient_test_records
+  drop constraint if exists patient_test_records_gender_check,
+  add constraint patient_test_records_gender_check check (gender in ('', 'Female', 'Male', 'Other')),
+  drop constraint if exists patient_test_records_age_check,
+  add constraint patient_test_records_age_check check (age is null or age > 0);
 
 drop trigger if exists trg_prevent_duplicate_patient_file_id on public.patient_test_records;
 drop function if exists public.prevent_duplicate_patient_file_id();

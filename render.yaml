@@ -11,7 +11,7 @@ services:
       - key: MEDILOGIX_API_HOST
         value: 0.0.0.0
       - key: MEDILOGIX_ALLOWED_ORIGINS
-        value: "*"
+        value: "https://medilogix.vercel.app"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

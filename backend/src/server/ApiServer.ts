@@ -17,7 +17,7 @@ interface RequestContext {
   url: URL;
 }
 
-const allowedGenders = new Set(['Female', 'Male', 'Other']);
+const allowedGenders = new Set(['', 'Female', 'Male', 'Other']);
 const allowedLogoTypes = new Set(['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp']);
 const maxBodyBytes = 10 * 1024 * 1024;
 const maxLogoBytes = 1024 * 1024;
@@ -316,12 +316,8 @@ export class MedilogixApiServer {
     }
 
     const requiredTextFields: Array<keyof PatientTestInput> = [
-      'age',
-      'caseHistory',
-      'description',
       'id',
       'importedAt',
-      'patientName',
       'testDate',
       'testDuration',
     ];
@@ -339,7 +335,9 @@ export class MedilogixApiServer {
       return { ok: false, message: 'gender is required before saving' };
     }
 
-    if (!Number.isInteger(Number(value.age)) || Number(value.age) <= 0) {
+    const age = typeof value.age === 'string' ? value.age.trim() : '';
+
+    if (age && (!Number.isInteger(Number(age)) || Number(age) <= 0)) {
       return { ok: false, message: 'age must be a positive number' };
     }
 
@@ -367,15 +365,15 @@ export class MedilogixApiServer {
     return {
       ok: true,
       value: {
-        age: value.age.trim(),
+        age,
         averagePsi: value.averagePsi,
-        caseHistory: value.caseHistory.trim(),
-        description: value.description.trim(),
+        caseHistory: typeof value.caseHistory === 'string' ? value.caseHistory.trim() : '',
+        description: typeof value.description === 'string' ? value.description.trim() : '',
         gender: value.gender,
         id: value.id.trim(),
         importedAt: value.importedAt.trim(),
         minimumPsi: value.minimumPsi,
-        patientName: value.patientName.trim(),
+        patientName: typeof value.patientName === 'string' ? value.patientName.trim() : '',
         peakPsi: value.peakPsi,
         sampleCount: value.samples.length,
         samples: value.samples,

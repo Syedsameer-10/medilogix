@@ -31,7 +31,7 @@ interface DoctorRow {
 }
 
 interface PatientTestRow {
-  age: number;
+  age: number | null;
   average_psi: number;
   case_history: string;
   description: string;
@@ -109,7 +109,7 @@ export interface PatientTestRecord {
   samples: Array<{ psi: number; time: string; timestamp: string }>;
   savedAt: string;
   sourceFileName?: string;
-  status: 'Completed';
+  status: 'Completed' | 'Pending';
   testDate: string;
   testDuration: string;
 }
@@ -196,7 +196,7 @@ export class MedilogixDatabase {
     const recordId = crypto.randomUUID();
     const savedAt = new Date().toISOString();
     const record = await this.rpc<PatientTestRow>('save_patient_test', {
-      p_age: Number(input.age),
+      p_age: input.age ? Number(input.age) : null,
       p_average_psi: input.averagePsi,
       p_case_history: input.caseHistory,
       p_description: input.description,
@@ -343,7 +343,7 @@ export class MedilogixDatabase {
     });
 
     return {
-      age: String(row.age),
+      age: row.age ? String(row.age) : '',
       averagePsi: row.average_psi,
       caseHistory: row.case_history ?? '',
       description: row.description,
@@ -362,7 +362,7 @@ export class MedilogixDatabase {
       })),
       savedAt: row.saved_at,
       sourceFileName: row.source_file_name ?? undefined,
-      status: 'Completed',
+      status: row.patient_name && row.gender && row.age && row.case_history && row.description ? 'Completed' : 'Pending',
       testDate: row.test_date,
       testDuration: row.test_duration,
     };

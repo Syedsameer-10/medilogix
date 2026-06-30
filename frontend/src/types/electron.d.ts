@@ -43,9 +43,6 @@ interface PatientImportResult {
 declare global {
   interface Window {
     medilogix?: {
-      api: {
-        getBaseUrl: () => Promise<string>;
-      };
       app: {
         getPlatform: () => Promise<string>;
         getVersion: () => Promise<string>;

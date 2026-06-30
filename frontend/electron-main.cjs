@@ -1,1 +1,1 @@
-require('../electron/main.cjs');
+require('./electron/main.cjs');

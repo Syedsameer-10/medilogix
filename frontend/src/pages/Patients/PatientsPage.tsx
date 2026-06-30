@@ -133,7 +133,12 @@ export function PatientsPage() {
     return searchedRecords;
   }, [activeFilter, records, searchQuery]);
   const hasElectronImport = Boolean(window.medilogix?.usb);
-  const usbState: UsbImportState = hasElectronImport ? (usbStatus.connected ? 'Ready to Import' : 'No USB Connected') : 'Ready to Import';
+  const usbState: UsbImportState =
+    importButtonState === 'importing'
+      ? 'Importing'
+      : hasElectronImport
+        ? (usbStatus.connected ? 'Ready to Import' : 'No USB Connected')
+        : 'Ready to Import';
   const usbDeviceName = hasElectronImport ? (usbStatus.device?.deviceName ?? 'No USB Connected') : 'Browser File Picker';
   const usbDriveLetter = usbStatus.device?.driveLetter ?? '-';
   const usbConnectionStatus = hasElectronImport ? (usbStatus.connected ? 'Connected' : 'Disconnected') : 'Available';
@@ -224,9 +229,9 @@ export function PatientsPage() {
     }
   }
 
-  function applyImportResult(result: TxtImportResult) {
+  async function applyImportResult(result: TxtImportResult) {
     setTxtFilesFoundCount(result.txtFilesFound);
-    const importedRecords = result.records.map((record) => ({
+    const importedRecords: PatientTestRecord[] = result.records.map((record) => ({
         ...record,
         recordKey: `imported-${record.id}-${record.importedAt}`,
         samples: record.samples.map((sample) => ({
@@ -235,11 +240,24 @@ export function PatientsPage() {
           psi: sample.psi,
         })),
       }));
+    const savedRecords: PatientTestRecord[] = [];
 
-    setRecords((currentRecords) => [...importedRecords, ...currentRecords]);
+    for (const record of importedRecords) {
+      try {
+        const savedRecord = await createPatientTest(record);
+        savedRecords.push({ ...savedRecord, recordKey: savedRecord.recordId });
+      } catch (error) {
+        result.errors.push({
+          fileName: record.sourceFileName ?? record.id,
+          message: error instanceof Error ? error.message : 'Record upload failed',
+        });
+      }
+    }
 
-    if (result.records.length > 0) {
-      pushToast(`${result.records.length} files imported successfully.`, 'success');
+    setRecords((currentRecords) => [...savedRecords, ...currentRecords]);
+
+    if (savedRecords.length > 0) {
+      pushToast(`${savedRecords.length} files imported successfully.`, 'success');
     }
 
     result.errors.forEach((error) => {
@@ -257,7 +275,7 @@ export function PatientsPage() {
     setImportButtonState('importing');
 
     try {
-      applyImportResult(await importTxtFilesFromBrowser(files));
+      await applyImportResult(await importTxtFilesFromBrowser(files));
     } catch {
       pushToast('Import Failed', 'danger');
     } finally {
@@ -280,7 +298,7 @@ export function PatientsPage() {
     setImportButtonState('importing');
 
     try {
-      applyImportResult(await window.medilogix.usb.importTxtFiles());
+      await applyImportResult(await window.medilogix.usb.importTxtFiles());
     } catch {
       pushToast('Import Failed', 'danger');
     } finally {
@@ -391,7 +409,7 @@ export function PatientsPage() {
               <p className="text-sm font-bold uppercase tracking-normal text-[#68779f]">Import Source</p>
               <h2 className="mt-1 text-xl font-extrabold tracking-normal text-[#07194c]">{usbDeviceName}</h2>
               <span className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ring-1 ${usbStateClasses[usbState]}`}>
-                {usbState === 'Importing' || usbState === 'Scanning Files' ? (
+                {usbState === 'Importing' ? (
                   <FiLoader aria-hidden="true" className="animate-spin" />
                 ) : (
                   <FiCheckCircle aria-hidden="true" />
