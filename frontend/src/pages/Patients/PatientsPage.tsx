@@ -119,13 +119,15 @@ export function PatientsPage() {
     if (activeFilter === 'Oldest First') {
       return sortedRecords.sort((left, right) => getRecordTime(left) - getRecordTime(right));
     }
+
     return searchedRecords;
   }, [activeFilter, records, searchQuery]);
-  const usbState: UsbImportState = usbStatus.connected ? 'Ready to Import' : 'No USB Connected';
-  const usbDeviceName = usbStatus.device?.deviceName ?? 'No USB Connected';
+  const hasElectronImport = Boolean(window.medilogix?.usb);
+  const usbState: UsbImportState = hasElectronImport ? (usbStatus.connected ? 'Ready to Import' : 'No USB Connected') : 'Ready to Import';
+  const usbDeviceName = hasElectronImport ? (usbStatus.device?.deviceName ?? 'No USB Connected') : 'Browser File Picker';
   const usbDriveLetter = usbStatus.device?.driveLetter ?? '-';
-  const usbConnectionStatus = usbStatus.connected ? 'Connected' : 'Disconnected';
-  const displayedTxtFilesFound = usbStatus.connected ? (txtFilesFoundCount ?? txtFilesFound) : '-';
+  const usbConnectionStatus = hasElectronImport ? (usbStatus.connected ? 'Connected' : 'Disconnected') : 'Available';
+  const displayedTxtFilesFound = hasElectronImport && !usbStatus.connected ? '-' : (txtFilesFoundCount ?? txtFilesFound);
 
   const pushToast = useCallback((message: string, tone: ToastMessage['tone']) => {
     const id = `${Date.now()}-${message}`;
@@ -345,7 +347,7 @@ export function PatientsPage() {
               <p className="text-sm font-bold uppercase tracking-normal text-[#68779f]">USB Device</p>
               <h2 className="mt-1 text-xl font-extrabold tracking-normal text-[#07194c]">{usbDeviceName}</h2>
               <span className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ring-1 ${usbStateClasses[usbState]}`}>
-                {usbState === 'Importing' || usbState === 'Scanning Files' ? (
+                {(usbState as string) === 'Importing' || (usbState as string) === 'Scanning Files' ? (
                   <FiLoader aria-hidden="true" className="animate-spin" />
                 ) : (
                   <FiCheckCircle aria-hidden="true" />

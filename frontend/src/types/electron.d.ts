@@ -25,7 +25,6 @@ interface PatientImportRecord {
   description: '';
   testDate: string;
   testDuration: string;
-  peakPsi: number;
   averagePsi: number;
   minimumPsi: number;
   sampleCount: number;

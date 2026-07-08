@@ -41,7 +41,6 @@ interface PatientTestRow {
   minimum_psi: number;
   patient_file_id: string;
   patient_name: string;
-  peak_psi: number;
   sample_count: number;
   saved_at: string;
   source_file_name: string | null;
@@ -64,7 +63,6 @@ export interface PatientTestInput {
   importedAt: string;
   minimumPsi: number;
   patientName: string;
-  peakPsi: number;
   sampleCount: number;
   samples: Array<{ psi: number; time?: string; timestamp?: string }>;
   sourceFileName?: string;
@@ -103,7 +101,6 @@ export interface PatientTestRecord {
   importedAt: string;
   minimumPsi: number;
   patientName: string;
-  peakPsi: number;
   recordId: string;
   sampleCount: number;
   samples: Array<{ psi: number; time: string; timestamp: string }>;
@@ -207,7 +204,6 @@ export class MedilogixDatabase {
       p_minimum_psi: input.minimumPsi,
       p_patient_file_id: input.id,
       p_patient_name: input.patientName,
-      p_peak_psi: input.peakPsi,
       p_samples: input.samples.map((sample) => ({
         psi: sample.psi,
         timestamp: sample.timestamp ?? sample.time,
@@ -352,7 +348,6 @@ export class MedilogixDatabase {
       importedAt: row.imported_at,
       minimumPsi: row.minimum_psi,
       patientName: row.patient_name,
-      peakPsi: row.peak_psi,
       recordId: row.id,
       sampleCount: row.sample_count,
       samples: sampleRows.map((sample) => ({

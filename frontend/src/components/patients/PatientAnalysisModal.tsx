@@ -59,7 +59,7 @@ export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysi
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} scrollable={false} size="xl" title="Pressure Analysis">
+    <Modal isOpen={isOpen} onClose={onClose} scrollable={false} size="xl" title="Pressure Graph">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-8 rounded-lg border border-[#e7ebf3] bg-[#f8fbff] px-4 py-3">
           <div className="grid min-w-0 max-w-[760px] flex-1 gap-x-4 gap-y-2 sm:grid-cols-2">

@@ -340,7 +340,7 @@ export class MedilogixApiServer {
       return { ok: false, message: 'age must be a positive number' };
     }
 
-    const numericFields: Array<keyof PatientTestInput> = ['averagePsi', 'minimumPsi', 'peakPsi'];
+    const numericFields: Array<keyof PatientTestInput> = ['averagePsi', 'minimumPsi'];
     const invalidNumericField = numericFields.find((field) => typeof value[field] !== 'number' || !Number.isFinite(value[field]));
 
     if (invalidNumericField) {
@@ -373,7 +373,6 @@ export class MedilogixApiServer {
         importedAt: value.importedAt.trim(),
         minimumPsi: value.minimumPsi,
         patientName: value.patientName.trim(),
-        peakPsi: value.peakPsi,
         sampleCount: value.samples.length,
         samples: value.samples,
         sourceFileName: typeof value.sourceFileName === 'string' ? value.sourceFileName.trim() : undefined,

@@ -47,7 +47,6 @@ export function parseTxtFile(filePath: string, content: string): PatientImportRe
     description: '',
     testDate,
     testDuration: statistics.testDuration,
-    peakPsi: statistics.peakPsi,
     averagePsi: statistics.averagePsi,
     minimumPsi: statistics.minimumPsi,
     sampleCount: statistics.sampleCount,

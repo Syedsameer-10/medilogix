@@ -3,7 +3,6 @@ import type { TestReading } from './types/TestReading';
 export interface TestStatistics {
   averagePsi: number;
   minimumPsi: number;
-  peakPsi: number;
   sampleCount: number;
   testDuration: string;
 }
@@ -41,7 +40,6 @@ export function calculateStatistics(readings: TestReading[]): TestStatistics {
   return {
     averagePsi: psiValues.reduce((sum, value) => sum + value, 0) / psiValues.length,
     minimumPsi: Math.min(...psiValues),
-    peakPsi: Math.max(...psiValues),
     sampleCount: readings.length,
     testDuration: formatDuration(lastTimestamp - firstTimestamp),
   };

@@ -17,7 +17,6 @@ export interface PatientTestRecord {
   description: string;
   testDate: string;
   testDuration: string;
-  peakPsi: number;
   averagePsi?: number;
   minimumPsi?: number;
   sampleCount?: number;
