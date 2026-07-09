@@ -1,4 +1,8 @@
 import crypto from 'node:crypto';
+import path from 'node:path';
+import { parseTxtFile } from '../parser/TxtParser';
+import type { PatientImportRecord } from '../parser/types/PatientImport';
+import { compressBuffer, decompressBuffer, SupabaseCompressedStorage } from './CompressedStorage';
 import { hashPassword, verifyPassword } from './Auth';
 
 export interface DoctorRecord {
@@ -41,16 +45,14 @@ interface PatientTestRow {
   minimum_psi: number;
   patient_file_id: string;
   patient_name: string;
+  peak_psi: number | null;
   sample_count: number;
   saved_at: string;
   source_file_name: string | null;
+  status: 'Completed' | null;
+  storage_file_path: string | null;
   test_date: string;
   test_duration: string;
-}
-
-interface SampleRow {
-  psi: number;
-  timestamp: string;
 }
 
 export interface PatientTestInput {
@@ -62,7 +64,9 @@ export interface PatientTestInput {
   id: string;
   importedAt: string;
   minimumPsi: number;
+  originalTxtContent?: string;
   patientName: string;
+  peakPsi?: number;
   sampleCount: number;
   samples: Array<{ psi: number; time?: string; timestamp?: string }>;
   sourceFileName?: string;
@@ -101,11 +105,13 @@ export interface PatientTestRecord {
   importedAt: string;
   minimumPsi: number;
   patientName: string;
+  peakPsi: number;
   recordId: string;
   sampleCount: number;
   samples: Array<{ psi: number; time: string; timestamp: string }>;
   savedAt: string;
   sourceFileName?: string;
+  storageFilePath?: string;
   status: 'Completed';
   testDate: string;
   testDuration: string;
@@ -114,6 +120,7 @@ export interface PatientTestRecord {
 export class MedilogixDatabase {
   private anonKey: string;
   private serviceRoleKey: string;
+  private storage: SupabaseCompressedStorage;
   private supabaseUrl: string;
   private tokenSecret: string;
 
@@ -126,6 +133,13 @@ export class MedilogixDatabase {
     if (!this.supabaseUrl || !this.serviceRoleKey) {
       throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for the MediLogiX API');
     }
+
+    this.storage = new SupabaseCompressedStorage({
+      anonKey: this.anonKey,
+      bucketName: 'patient-test-files',
+      serviceRoleKey: this.serviceRoleKey,
+      supabaseUrl: this.supabaseUrl,
+    });
   }
 
   async initialize() {
@@ -173,7 +187,7 @@ export class MedilogixDatabase {
       },
     });
 
-    return Promise.all(rows.map((row) => this.mapPatientTest(row)));
+    return rows.map((row) => this.mapPatientTestMetadata(row));
   }
 
   async getPatientTest(recordId: string, doctorId: string) {
@@ -186,35 +200,68 @@ export class MedilogixDatabase {
       },
     });
 
-    return rows[0] ? this.mapPatientTest(rows[0]) : null;
+    return rows[0] ? this.mapPatientTestWithSamples(rows[0]) : null;
   }
 
   async createPatientTest(doctorId: string, input: PatientTestInput) {
     const recordId = crypto.randomUUID();
     const savedAt = new Date().toISOString();
-    const record = await this.rpc<PatientTestRow>('save_patient_test', {
-      p_age: Number(input.age),
-      p_average_psi: input.averagePsi,
-      p_case_history: input.caseHistory,
-      p_description: input.description,
-      p_doctor_id: doctorId,
-      p_gender: input.gender,
-      p_id: recordId,
-      p_imported_at: input.importedAt,
-      p_minimum_psi: input.minimumPsi,
-      p_patient_file_id: input.id,
-      p_patient_name: input.patientName,
-      p_samples: input.samples.map((sample) => ({
-        psi: sample.psi,
-        timestamp: sample.timestamp ?? sample.time,
-      })),
-      p_saved_at: savedAt,
-      p_source_file_name: input.sourceFileName ?? null,
-      p_test_date: input.testDate,
-      p_test_duration: input.testDuration,
-    });
+    const originalTxtContent = input.originalTxtContent ?? this.createTxtContentFromSamples(input);
+    const sourceFileName = input.sourceFileName || `${input.id}.txt`;
+    let parsedRecord;
 
-    return this.mapPatientTest(record);
+    try {
+      parsedRecord = parseTxtFile(sourceFileName, originalTxtContent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'TXT parsing failed';
+      throw new Error(`TXT parsing failed before save: ${message}`);
+    }
+
+    const storagePath = this.createPatientTestStoragePath(doctorId, recordId, sourceFileName);
+    let uploadedStoragePath: string;
+
+    try {
+      const compressedBuffer = await compressBuffer(originalTxtContent);
+      await this.assertCompressionRoundTrip(sourceFileName, originalTxtContent, compressedBuffer, parsedRecord);
+      uploadedStoragePath = await this.storage.uploadCompressedFile(storagePath, compressedBuffer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Compressed TXT upload failed';
+      throw new Error(`Patient TXT storage failed: ${message}`);
+    }
+
+    try {
+      const record = await this.rpc<PatientTestRow>('save_patient_test', {
+        p_age: Number(input.age),
+        p_average_psi: parsedRecord.averagePsi,
+        p_case_history: input.caseHistory,
+        p_description: input.description,
+        p_doctor_id: doctorId,
+        p_gender: input.gender,
+        p_id: recordId,
+        p_imported_at: input.importedAt,
+        p_minimum_psi: parsedRecord.minimumPsi,
+        p_patient_file_id: input.id,
+        p_patient_name: input.patientName,
+        p_peak_psi: parsedRecord.peakPsi,
+        p_sample_count: parsedRecord.sampleCount,
+        p_saved_at: savedAt,
+        p_source_file_name: sourceFileName,
+        p_status: 'Completed',
+        p_storage_file_path: uploadedStoragePath,
+        p_test_date: parsedRecord.testDate,
+        p_test_duration: parsedRecord.testDuration,
+      });
+
+      return this.mapPatientTestMetadata(record);
+    } catch (error) {
+      try {
+        await this.storage.deleteCompressedFile(uploadedStoragePath);
+      } catch (cleanupError) {
+        console.warn('[MediLogiX] Uploaded TXT cleanup failed after metadata save failure', cleanupError);
+      }
+
+      throw error;
+    }
   }
 
   async createDoctor(input: RegisterDoctorInput) {
@@ -255,7 +302,7 @@ export class MedilogixDatabase {
         select: '*',
       },
     });
-    const doctor = rows[0] ? this.mapDoctorAuth(rows[0]) : null;
+    const doctor = rows[0] ? await this.mapDoctorAuth(rows[0]) : null;
 
     if (!doctor || !verifyPassword(currentPassword, doctor.passwordSalt, doctor.passwordHash)) {
       throw new Error('Current password is incorrect');
@@ -292,7 +339,7 @@ export class MedilogixDatabase {
       },
     });
 
-    return rows[0] ? this.mapPatientTest(rows[0]) : null;
+    return rows[0] ? this.mapPatientTestMetadata(rows[0]) : null;
   }
 
   private async seedDefaultDoctor() {
@@ -329,15 +376,7 @@ export class MedilogixDatabase {
     });
   }
 
-  private async mapPatientTest(row: PatientTestRow): Promise<PatientTestRecord> {
-    const sampleRows = await this.request<SampleRow[]>('patient_test_samples', {
-      query: {
-        order: 'sample_order.asc',
-        record_id: `eq.${row.id}`,
-        select: 'timestamp,psi',
-      },
-    });
-
+  private mapPatientTestMetadata(row: PatientTestRow): PatientTestRecord {
     return {
       age: String(row.age),
       averagePsi: row.average_psi,
@@ -348,19 +387,105 @@ export class MedilogixDatabase {
       importedAt: row.imported_at,
       minimumPsi: row.minimum_psi,
       patientName: row.patient_name,
+      peakPsi: row.peak_psi ?? row.average_psi,
       recordId: row.id,
       sampleCount: row.sample_count,
-      samples: sampleRows.map((sample) => ({
-        psi: sample.psi,
-        time: sample.timestamp,
-        timestamp: sample.timestamp,
-      })),
+      samples: [],
       savedAt: row.saved_at,
       sourceFileName: row.source_file_name ?? undefined,
+      storageFilePath: row.storage_file_path ?? undefined,
       status: 'Completed',
       testDate: row.test_date,
       testDuration: row.test_duration,
     };
+  }
+
+  private async mapPatientTestWithSamples(row: PatientTestRow): Promise<PatientTestRecord> {
+    if (!row.storage_file_path) {
+      throw new Error('Analysis file is not available for this patient test');
+    }
+
+    let decompressedText: string;
+
+    try {
+      const compressedBuffer = await this.storage.downloadCompressedFile(row.storage_file_path);
+      decompressedText = (await decompressBuffer(compressedBuffer)).toString('utf8');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Compressed TXT download failed';
+      throw new Error(`Analysis file could not be loaded: ${message}`);
+    }
+
+    let parsedRecord;
+
+    try {
+      parsedRecord = parseTxtFile(row.source_file_name ?? `${row.patient_file_id}.txt`, decompressedText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'TXT parsing failed';
+      throw new Error(`Analysis file could not be parsed: ${message}`);
+    }
+
+    return {
+      ...this.mapPatientTestMetadata(row),
+      averagePsi: parsedRecord.averagePsi,
+      minimumPsi: parsedRecord.minimumPsi,
+      peakPsi: parsedRecord.peakPsi,
+      sampleCount: parsedRecord.sampleCount,
+      samples: parsedRecord.samples.map((sample) => ({
+        psi: sample.psi,
+        time: sample.timestamp,
+        timestamp: sample.timestamp,
+      })),
+      testDate: parsedRecord.testDate,
+      testDuration: parsedRecord.testDuration,
+    };
+  }
+
+  private createPatientTestStoragePath(doctorId: string, recordId: string, sourceFileName: string) {
+    const extension = path.extname(sourceFileName) || '.txt';
+    const baseName = path.basename(sourceFileName, extension).replace(/[^a-zA-Z0-9._-]/g, '_') || 'patient-test';
+
+    return `${doctorId}/${recordId}/${baseName}${extension}.gz`;
+  }
+
+  private async assertCompressionRoundTrip(
+    sourceFileName: string,
+    originalTxtContent: string,
+    compressedBuffer: Buffer,
+    parsedRecord: PatientImportRecord,
+  ) {
+    const decompressedText = (await decompressBuffer(compressedBuffer)).toString('utf8');
+
+    if (decompressedText !== originalTxtContent) {
+      throw new Error('Compressed TXT round-trip mismatch');
+    }
+
+    const reparsedRecord = parseTxtFile(sourceFileName, decompressedText);
+
+    if (
+      reparsedRecord.testDate !== parsedRecord.testDate ||
+      reparsedRecord.testDuration !== parsedRecord.testDuration ||
+      reparsedRecord.averagePsi !== parsedRecord.averagePsi ||
+      reparsedRecord.minimumPsi !== parsedRecord.minimumPsi ||
+      reparsedRecord.peakPsi !== parsedRecord.peakPsi ||
+      reparsedRecord.sampleCount !== parsedRecord.sampleCount ||
+      reparsedRecord.samples.length !== parsedRecord.samples.length
+    ) {
+      throw new Error('Compressed TXT parser round-trip mismatch');
+    }
+
+    parsedRecord.samples.forEach((sample, index) => {
+      const reparsedSample = reparsedRecord.samples[index];
+
+      if (!reparsedSample || reparsedSample.timestamp !== sample.timestamp || reparsedSample.psi !== sample.psi) {
+        throw new Error('Compressed TXT sample round-trip mismatch');
+      }
+    });
+  }
+
+  private createTxtContentFromSamples(input: PatientTestInput) {
+    const sampleLines = input.samples.map((sample) => `${sample.timestamp ?? sample.time}, ${sample.psi}`);
+
+    return [input.testDate, ...sampleLines].join('\n');
   }
 
   private async mapDoctor(row: DoctorRow): Promise<DoctorRecord> {

@@ -6,7 +6,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['dist', 'frontend/dist']),
+  globalIgnores(['dist', 'frontend/dist', 'frontend/electron', 'backend/electron/dist', '../backend/electron/dist']),
   ...tseslint.configs.recommended,
   {
     files: ['backend/electron/**/*.{cjs,ts}', '../backend/electron/**/*.{cjs,ts}'],

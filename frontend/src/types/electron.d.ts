@@ -27,10 +27,13 @@ interface PatientImportRecord {
   testDuration: string;
   averagePsi: number;
   minimumPsi: number;
+  peakPsi: number;
   sampleCount: number;
   importedAt: string;
   status: 'Pending';
   samples: Array<{ timestamp: string; psi: number }>;
+  originalTxtContent: string;
+  sourceFileName: string;
 }
 
 interface PatientImportResult {

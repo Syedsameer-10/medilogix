@@ -49,9 +49,12 @@ export function parseTxtFile(filePath: string, content: string): PatientImportRe
     testDuration: statistics.testDuration,
     averagePsi: statistics.averagePsi,
     minimumPsi: statistics.minimumPsi,
+    peakPsi: statistics.peakPsi,
     sampleCount: statistics.sampleCount,
     importedAt: new Date().toISOString(),
     status: 'Pending',
     samples,
+    originalTxtContent: content,
+    sourceFileName: fileName,
   };
 }

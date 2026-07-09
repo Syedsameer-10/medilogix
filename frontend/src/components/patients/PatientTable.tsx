@@ -9,7 +9,7 @@ interface PatientTableProps {
   records: PatientTestRecord[];
 }
 
-const columns = ['Patient ID', 'Patient Name', 'Case History', 'Test Date', 'Test Duration', 'Edit', 'Actions'];
+const columns = ['Patient ID', 'Patient Name', 'Test Date', 'Test Duration', 'Peak PSI', 'Status', 'Actions'];
 
 function SortIcon() {
   return (
@@ -87,11 +87,9 @@ export function PatientTable({ isSearchActive = false, onEditMetadata, onViewAna
                 <td className="h-16 whitespace-nowrap px-6 font-medium">
                   {record.patientName || <span className="text-[#8a97bc]">Patient&apos;s Info pending</span>}
                 </td>
-                <td className="h-16 whitespace-nowrap px-6 font-medium">
-                  {record.caseHistory || <span className="text-[#8a97bc]">Pending</span>}
-                </td>
                 <td className="h-16 whitespace-nowrap px-6 font-medium">{record.testDate}</td>
                 <td className="h-16 whitespace-nowrap px-6 font-medium">{record.testDuration}</td>
+                <td className="h-16 whitespace-nowrap px-6 font-medium">{Number(record.peakPsi ?? 0).toFixed(1)} PSI</td>
                 <td className="h-16 whitespace-nowrap px-6">
                   <StatusBadge status={record.status} />
                 </td>

@@ -16,7 +16,7 @@ import { PatientAnalysisModal } from '../../components/patients/PatientAnalysisM
 import { PatientMetadataModal } from '../../components/patients/PatientMetadataModal';
 import { PatientTable } from '../../components/patients/PatientTable';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { createPatientTest, getPatientTests, updatePatientTestMetadata } from '../../services/patientTests.service';
+import { createPatientTest, getPatientTest, getPatientTests, updatePatientTestMetadata } from '../../services/patientTests.service';
 import type { PatientMetadataFormValues, PatientTestRecord } from '../../types/patientTest';
 
 function isCompleted(values: PatientMetadataFormValues) {
@@ -255,6 +255,19 @@ export function PatientsPage() {
     }
   }
 
+  async function handleViewAnalysis(record: PatientTestRecord) {
+    if (!record.recordId) {
+      setAnalysisRecord(record);
+      return;
+    }
+
+    try {
+      setAnalysisRecord(await getPatientTest(record.recordId));
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : 'Analysis could not be loaded', 'danger');
+    }
+  }
+
   const importButtonLabel =
     importButtonState === 'importing'
       ? 'Importing...'
@@ -406,7 +419,7 @@ export function PatientsPage() {
       <PatientTable
         isSearchActive={Boolean(searchQuery.trim()) || activeFilter !== 'All Records'}
         onEditMetadata={setEditingRecord}
-        onViewAnalysis={setAnalysisRecord}
+        onViewAnalysis={handleViewAnalysis}
         records={filteredRecords}
       />
 

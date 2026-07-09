@@ -11,10 +11,13 @@ export interface PatientImportRecord {
   testDuration: string;
   averagePsi: number;
   minimumPsi: number;
+  peakPsi: number;
   sampleCount: number;
   importedAt: string;
   status: 'Pending';
   samples: TestReading[];
+  originalTxtContent: string;
+  sourceFileName: string;
 }
 
 export interface PatientImportError {

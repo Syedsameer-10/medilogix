@@ -19,8 +19,17 @@ interface RequestContext {
 
 const allowedGenders = new Set(['Female', 'Male', 'Other']);
 const allowedLogoTypes = new Set(['image/jpeg', 'image/png', 'image/svg+xml', 'image/webp']);
-const maxBodyBytes = 10 * 1024 * 1024;
+const maxBodyBytes = 25 * 1024 * 1024;
 const maxLogoBytes = 1024 * 1024;
+
+function getAllowedOrigins() {
+  return new Set(
+    (process.env.MEDILOGIX_ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+}
 
 export class MedilogixApiServer {
   private database: MedilogixDatabase;
@@ -39,18 +48,22 @@ export class MedilogixApiServer {
       return this.baseUrl;
     }
 
-    await this.database.initialize();
-
-    const port = Number(process.env.MEDILOGIX_API_PORT ?? 3417);
+    const host = process.env.MEDILOGIX_API_HOST || '127.0.0.1';
+    const advertisedHost = host === '0.0.0.0' ? '127.0.0.1' : host;
+    const port = Number(process.env.MEDILOGIX_API_PORT ?? process.env.PORT ?? 3417);
 
     await new Promise<void>((resolve, reject) => {
       this.server.once('error', reject);
-      this.server.listen(port, '127.0.0.1', () => {
+      this.server.listen(port, host, () => {
         this.server.off('error', reject);
         const address = this.server.address() as AddressInfo;
-        this.baseUrl = `http://127.0.0.1:${address.port}/api`;
+        this.baseUrl = `http://${advertisedHost}:${address.port}/api`;
         resolve();
       });
+    });
+
+    void this.database.initialize().catch((error: unknown) => {
+      console.error('[MediLogiX] Database initialization failed', error);
     });
 
     return this.baseUrl;
@@ -152,7 +165,16 @@ export class MedilogixApiServer {
     const recordMatch = url.pathname.match(/^\/api\/patient-tests\/([^/]+)$/);
 
     if (method === 'GET' && recordMatch) {
-      const record = await this.database.getPatientTest(decodeURIComponent(recordMatch[1]), context.doctor.id);
+      let record;
+
+      try {
+        record = await this.database.getPatientTest(decodeURIComponent(recordMatch[1]), context.doctor.id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Analysis could not be loaded';
+        const status = message.includes('missing') || message.includes('not available') ? 404 : 422;
+        this.sendJson(response, status, { message });
+        return;
+      }
 
       if (!record) {
         this.sendJson(response, 404, { message: 'Record not found' });
@@ -361,23 +383,36 @@ export class MedilogixApiServer {
       return { ok: false, message: 'Every sample must include a timestamp and PSI value' };
     }
 
+    const age = value.age as string;
+    const averagePsi = value.averagePsi as number;
+    const caseHistory = value.caseHistory as string;
+    const description = value.description as string;
+    const id = value.id as string;
+    const importedAt = value.importedAt as string;
+    const minimumPsi = value.minimumPsi as number;
+    const patientName = value.patientName as string;
+    const testDate = value.testDate as string;
+    const testDuration = value.testDuration as string;
+
     return {
       ok: true,
       value: {
-        age: value.age.trim(),
-        averagePsi: value.averagePsi,
-        caseHistory: value.caseHistory.trim(),
-        description: value.description.trim(),
+        age: age.trim(),
+        averagePsi,
+        caseHistory: caseHistory.trim(),
+        description: description.trim(),
         gender: value.gender,
-        id: value.id.trim(),
-        importedAt: value.importedAt.trim(),
-        minimumPsi: value.minimumPsi,
-        patientName: value.patientName.trim(),
+        id: id.trim(),
+        importedAt: importedAt.trim(),
+        minimumPsi,
+        originalTxtContent: typeof value.originalTxtContent === 'string' && value.originalTxtContent.trim() ? value.originalTxtContent : undefined,
+        patientName: patientName.trim(),
+        peakPsi: typeof value.peakPsi === 'number' && Number.isFinite(value.peakPsi) ? value.peakPsi : undefined,
         sampleCount: value.samples.length,
         samples: value.samples,
         sourceFileName: typeof value.sourceFileName === 'string' ? value.sourceFileName.trim() : undefined,
-        testDate: value.testDate.trim(),
-        testDuration: value.testDuration.trim(),
+        testDate: testDate.trim(),
+        testDuration: testDuration.trim(),
       },
     };
   }
@@ -518,7 +553,9 @@ export class MedilogixApiServer {
     const origin = request.headers.origin;
 
     if (origin) {
+      const configuredOrigins = getAllowedOrigins();
       const isAllowedOrigin =
+        configuredOrigins.has(origin) ||
         origin === 'null' ||
         origin.startsWith('file://') ||
         origin.startsWith('http://127.0.0.1:') ||

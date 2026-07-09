@@ -19,10 +19,13 @@ export interface PatientTestRecord {
   testDuration: string;
   averagePsi?: number;
   minimumPsi?: number;
+  peakPsi?: number;
   sampleCount?: number;
   importedAt: string;
   savedAt?: string;
   sourceFileName?: string;
+  storageFilePath?: string;
+  originalTxtContent?: string;
   status: PatientTestStatus;
   samples: PsiSample[];
 }

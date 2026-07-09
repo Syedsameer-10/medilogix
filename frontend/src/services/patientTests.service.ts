@@ -21,9 +21,13 @@ export async function getPatientTests() {
 }
 
 export async function getPatientTest(recordId: string) {
-  const response = await apiClient.get<{ record: PatientTestRecord }>(`/patient-tests/${encodeURIComponent(recordId)}`);
+  try {
+    const response = await apiClient.get<{ record: PatientTestRecord }>(`/patient-tests/${encodeURIComponent(recordId)}`);
 
-  return response.data.record;
+    return response.data.record;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error), { cause: error });
+  }
 }
 
 export async function createPatientTest(record: PatientTestRecord) {
