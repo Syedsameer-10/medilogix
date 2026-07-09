@@ -8,6 +8,7 @@ import {
   YAxis,
 } from 'recharts';
 import medilogixLogo from '../../assets/medilogix-logo.png';
+import senstimLogo from '../../assets/senstim-logo.jpeg';
 import { useAuth } from '../../contexts/AuthContext';
 import type { PatientTestRecord } from '../../types/patientTest';
 import { formatNumber } from '../../utils/format';
@@ -58,8 +59,16 @@ export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysi
     { label: 'Samples', value: formatNumber(record.samples.length) },
   ];
 
+  const modalTitle = (
+    <div className="flex items-center gap-3">
+      <span>Pressure Graph</span>
+      <span className="h-6 border-l-2 border-[#e7ebf3]"></span>
+      <img alt="Sen Stim Logo" className="h-8 object-contain" src={senstimLogo} />
+    </div>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} scrollable={false} size="xl" title="Pressure Graph">
+    <Modal isOpen={isOpen} onClose={onClose} scrollable={false} size="xl" title={modalTitle}>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-8 rounded-lg border border-[#e7ebf3] bg-[#f8fbff] px-4 py-3">
           <div className="grid min-w-0 max-w-[760px] flex-1 gap-x-4 gap-y-2 sm:grid-cols-2">

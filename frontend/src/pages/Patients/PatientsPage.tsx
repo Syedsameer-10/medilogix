@@ -337,42 +337,44 @@ export function PatientsPage() {
       </div>
       </div>
 
-      <section className="rounded-xl border border-[#dfe7f2] bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.06)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="grid h-14 w-14 place-items-center rounded-xl bg-[#eef4ff] text-[#0647ff] shadow-inner">
-              <FiHardDrive aria-hidden="true" size={26} />
+      {(hasElectronImport ? usbStatus.connected : true) && (
+        <section className="rounded-xl border border-[#dfe7f2] bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid h-14 w-14 place-items-center rounded-xl bg-[#eef4ff] text-[#0647ff] shadow-inner">
+                <FiHardDrive aria-hidden="true" size={26} />
+              </div>
+              <div>
+                <p className="text-sm font-bold uppercase tracking-normal text-[#68779f]">USB Device</p>
+                <h2 className="mt-1 text-xl font-extrabold tracking-normal text-[#07194c]">{usbDeviceName}</h2>
+                <span className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ring-1 ${usbStateClasses[usbState]}`}>
+                  {(usbState as string) === 'Importing' || (usbState as string) === 'Scanning Files' ? (
+                    <FiLoader aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <FiCheckCircle aria-hidden="true" />
+                  )}
+                  {usbState}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-normal text-[#68779f]">USB Device</p>
-              <h2 className="mt-1 text-xl font-extrabold tracking-normal text-[#07194c]">{usbDeviceName}</h2>
-              <span className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ring-1 ${usbStateClasses[usbState]}`}>
-                {(usbState as string) === 'Importing' || (usbState as string) === 'Scanning Files' ? (
-                  <FiLoader aria-hidden="true" className="animate-spin" />
-                ) : (
-                  <FiCheckCircle aria-hidden="true" />
-                )}
-                {usbState}
-              </span>
-            </div>
-          </div>
 
-          <div className="grid gap-4 sm:grid-cols-3 lg:min-w-[520px]">
-            <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
-              <p className="text-xs font-bold uppercase text-[#68779f]">Status</p>
-              <p className="mt-2 text-base font-extrabold text-[#07194c]">{usbConnectionStatus}</p>
-            </div>
-            <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
-              <p className="text-xs font-bold uppercase text-[#68779f]">TXT Files Found</p>
-              <p className="mt-2 text-base font-extrabold text-[#07194c]">{displayedTxtFilesFound}</p>
-            </div>
-            <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
-              <p className="text-xs font-bold uppercase text-[#68779f]">Drive</p>
-              <p className="mt-2 text-base font-extrabold text-[#07194c]">{usbDriveLetter}</p>
+            <div className="grid gap-4 sm:grid-cols-3 lg:min-w-[520px]">
+              <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
+                <p className="text-xs font-bold uppercase text-[#68779f]">Status</p>
+                <p className="mt-2 text-base font-extrabold text-[#07194c]">{usbConnectionStatus}</p>
+              </div>
+              <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
+                <p className="text-xs font-bold uppercase text-[#68779f]">TXT Files Found</p>
+                <p className="mt-2 text-base font-extrabold text-[#07194c]">{displayedTxtFilesFound}</p>
+              </div>
+              <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
+                <p className="text-xs font-bold uppercase text-[#68779f]">Drive</p>
+                <p className="mt-2 text-base font-extrabold text-[#07194c]">{usbDriveLetter}</p>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-[#dfe7f2] bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">

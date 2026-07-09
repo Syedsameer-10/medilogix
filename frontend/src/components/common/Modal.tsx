@@ -7,7 +7,7 @@ interface ModalProps {
   onClose: () => void;
   scrollable?: boolean;
   size?: 'md' | 'xl';
-  title: string;
+  title: ReactNode;
 }
 
 const sizeClasses = {

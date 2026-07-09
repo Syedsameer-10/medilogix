@@ -9,7 +9,7 @@ interface PatientTableProps {
   records: PatientTestRecord[];
 }
 
-const columns = ['Patient ID', 'Patient Name', 'Case History', 'Test Date', 'Test Duration', 'Status', 'Actions'];
+const columns = ['Patient ID', 'Patient Name', 'Case History', 'Test Date', 'Test Duration', 'Edit', 'Actions'];
 
 function SortIcon() {
   return (
