@@ -11,7 +11,6 @@ import medilogixLogo from '../../assets/medilogix-logo.png';
 import senstimLogo from '../../assets/senstim-logo.jpeg';
 import { useAuth } from '../../contexts/AuthContext';
 import type { PatientTestRecord } from '../../types/patientTest';
-import { formatNumber } from '../../utils/format';
 import { Card } from '../common/Card';
 import { Modal } from '../common/Modal';
 
@@ -19,22 +18,6 @@ interface PatientAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   record: PatientTestRecord | null;
-}
-
-function getAverage(record: PatientTestRecord) {
-  if (record.samples.length === 0) {
-    return 0;
-  }
-
-  return record.samples.reduce((sum, sample) => sum + sample.psi, 0) / record.samples.length;
-}
-
-function getMinimum(record: PatientTestRecord) {
-  if (record.samples.length === 0) {
-    return 0;
-  }
-
-  return Math.min(...record.samples.map((sample) => sample.psi));
 }
 
 export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysisModalProps) {
@@ -50,13 +33,6 @@ export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysi
     { label: 'Patient Name', value: record.patientName || "Patient's Info pending" },
     { label: 'Test Date', value: record.testDate },
     { label: 'Case History', value: record.caseHistory || "Patient's Info pending" },
-  ];
-
-  const statCards = [
-    { label: 'Average PSI', value: `${getAverage(record).toFixed(1)} PSI` },
-    { label: 'Minimum PSI', value: `${getMinimum(record).toFixed(1)} PSI` },
-    { label: 'Test Duration', value: record.testDuration },
-    { label: 'Samples', value: formatNumber(record.samples.length) },
   ];
 
   const modalTitle = (
@@ -111,16 +87,6 @@ export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysi
             </ResponsiveContainer>
           </div>
         </Card>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {statCards.map((stat) => (
-            <Card className="p-4" key={stat.label}>
-              <p className="text-xs font-bold uppercase text-[#68779f]">{stat.label}</p>
-              <p className="mt-2 text-xl font-extrabold text-[#07194c]">{stat.value}</p>
-            </Card>
-          ))}
-        </div>
-
       </div>
     </Modal>
   );
