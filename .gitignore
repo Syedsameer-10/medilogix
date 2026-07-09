@@ -6,3 +6,5 @@ dist-ssr/
 *.log
 frontend/electron/
 frontend/release/
+
+.vercel
