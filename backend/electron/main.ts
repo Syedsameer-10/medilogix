@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fs from 'node:fs';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { ImportQueue } from './parser/ImportQueue';
 import { MedilogixApiServer } from './server/ApiServer';
@@ -14,6 +15,27 @@ const rendererUrl = process.env.ELECTRON_RENDERER_URL;
 const usbDetector = new USBDetector();
 const importQueue = new ImportQueue();
 let apiServer: MedilogixApiServer | null = null;
+
+function readElectronConfig() {
+  if (!app.isPackaged) {
+    return { deployedFrontendUrl: '' };
+  }
+
+  try {
+    const configPath = path.join(appRoot, 'electron', 'config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as { deployedFrontendUrl?: unknown };
+    const deployedFrontendUrl = typeof config.deployedFrontendUrl === 'string' ? config.deployedFrontendUrl : '';
+
+    if (!deployedFrontendUrl) {
+      throw new Error('deployedFrontendUrl is missing');
+    }
+
+    return { deployedFrontendUrl };
+  } catch (error) {
+    console.error('[MediLogiX] Electron production config could not be loaded', error);
+    throw error;
+  }
+}
 
 function broadcastToRenderer(channel: string, payload: unknown) {
   BrowserWindow.getAllWindows().forEach((window) => {
@@ -48,7 +70,11 @@ function createMainWindow() {
     return { action: 'deny' };
   });
 
-  if (rendererUrl) {
+  const { deployedFrontendUrl } = readElectronConfig();
+
+  if (app.isPackaged) {
+    void mainWindow.loadURL(deployedFrontendUrl);
+  } else if (rendererUrl) {
     void mainWindow.loadURL(rendererUrl);
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {

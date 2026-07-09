@@ -60,7 +60,6 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*",
       "electron/**/*",
       "build/icon.ico",
       "package.json"
