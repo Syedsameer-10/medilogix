@@ -22,6 +22,10 @@ async function build() {
   await fs.copyFile(path.join(electronRoot, 'preload.cjs'), path.join(distDir, 'preload.cjs'));
   await fs.rm(stagedElectronDir, { force: true, recursive: true });
   await fs.mkdir(stagedElectronDir, { recursive: true });
+  await fs.writeFile(
+    path.join(stagedElectronDir, 'package.json'),
+    `${JSON.stringify({ type: 'commonjs' }, null, 2)}\n`,
+  );
   await fs.copyFile(path.join(electronRoot, 'main.cjs'), path.join(stagedElectronDir, 'main.cjs'));
   await fs.cp(distDir, path.join(stagedElectronDir, 'dist'), { recursive: true });
   await fs.writeFile(
