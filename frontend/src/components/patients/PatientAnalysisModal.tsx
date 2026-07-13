@@ -77,10 +77,10 @@ export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysi
                 <Tooltip />
                 <Line
                   dataKey="psi"
-                  dot={{ fill: '#dc2626', r: 4 }}
+                  dot={{ fill: '#1D4ED8', r: 2.5 }}
                   name="PSI"
-                  stroke="#dc2626"
-                  strokeWidth={3}
+                  stroke="#1D4ED8"
+                  strokeWidth={2}
                   type="monotone"
                 />
               </LineChart>
