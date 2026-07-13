@@ -50,6 +50,7 @@ interface PatientTestRow {
   saved_at: string;
   source_file_name: string | null;
   status: 'Completed' | null;
+  stimulation_current_ma: string | null;
   storage_file_path: string | null;
   test_date: string;
   test_duration: string;
@@ -70,6 +71,7 @@ export interface PatientTestInput {
   sampleCount: number;
   samples: Array<{ psi: number; time?: string; timestamp?: string }>;
   sourceFileName?: string;
+  stimulationCurrentMa?: string;
   testDate: string;
   testDuration: string;
 }
@@ -113,6 +115,7 @@ export interface PatientTestRecord {
   sourceFileName?: string;
   storageFilePath?: string;
   status: 'Completed';
+  stimulationCurrentMa: string;
   testDate: string;
   testDuration: string;
 }
@@ -247,6 +250,7 @@ export class MedilogixDatabase {
         p_saved_at: savedAt,
         p_source_file_name: sourceFileName,
         p_status: 'Completed',
+        p_stimulation_current_ma: parsedRecord.stimulationCurrentMa,
         p_storage_file_path: uploadedStoragePath,
         p_test_date: parsedRecord.testDate,
         p_test_duration: parsedRecord.testDuration,
@@ -342,6 +346,36 @@ export class MedilogixDatabase {
     return rows[0] ? this.mapPatientTestMetadata(rows[0]) : null;
   }
 
+  async deletePatientTest(recordId: string, doctorId: string) {
+    const rows = await this.request<PatientTestRow[]>('patient_test_records', {
+      query: {
+        doctor_id: `eq.${doctorId}`,
+        id: `eq.${recordId}`,
+        limit: '1',
+        select: 'id,storage_file_path',
+      },
+    });
+    const record = rows[0];
+
+    if (!record) {
+      return false;
+    }
+
+    if (record.storage_file_path) {
+      await this.storage.deleteCompressedFile(record.storage_file_path);
+    }
+
+    await this.request('patient_test_records', {
+      method: 'DELETE',
+      query: {
+        doctor_id: `eq.${doctorId}`,
+        id: `eq.${recordId}`,
+      },
+    });
+
+    return true;
+  }
+
   private async seedDefaultDoctor() {
     const rows = await this.request<Array<{ id: string }>>('doctors', {
       query: {
@@ -395,6 +429,7 @@ export class MedilogixDatabase {
       sourceFileName: row.source_file_name ?? undefined,
       storageFilePath: row.storage_file_path ?? undefined,
       status: 'Completed',
+      stimulationCurrentMa: row.stimulation_current_ma ?? '--',
       testDate: row.test_date,
       testDuration: row.test_duration,
     };
@@ -435,6 +470,7 @@ export class MedilogixDatabase {
         time: sample.timestamp,
         timestamp: sample.timestamp,
       })),
+      stimulationCurrentMa: parsedRecord.stimulationCurrentMa || this.mapPatientTestMetadata(row).stimulationCurrentMa,
       testDate: parsedRecord.testDate,
       testDuration: parsedRecord.testDuration,
     };
@@ -468,6 +504,7 @@ export class MedilogixDatabase {
       reparsedRecord.minimumPsi !== parsedRecord.minimumPsi ||
       reparsedRecord.peakPsi !== parsedRecord.peakPsi ||
       reparsedRecord.sampleCount !== parsedRecord.sampleCount ||
+      reparsedRecord.stimulationCurrentMa !== parsedRecord.stimulationCurrentMa ||
       reparsedRecord.samples.length !== parsedRecord.samples.length
     ) {
       throw new Error('Compressed TXT parser round-trip mismatch');

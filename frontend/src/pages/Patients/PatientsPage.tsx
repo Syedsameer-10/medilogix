@@ -16,7 +16,7 @@ import { PatientAnalysisModal } from '../../components/patients/PatientAnalysisM
 import { PatientMetadataModal } from '../../components/patients/PatientMetadataModal';
 import { PatientTable } from '../../components/patients/PatientTable';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { createPatientTest, getPatientTest, getPatientTests, updatePatientTestMetadata } from '../../services/patientTests.service';
+import { createPatientTest, deletePatientTest, getPatientTest, getPatientTests, updatePatientTestMetadata } from '../../services/patientTests.service';
 import type { PatientMetadataFormValues, PatientTestRecord } from '../../types/patientTest';
 
 function isCompleted(values: PatientMetadataFormValues) {
@@ -71,6 +71,7 @@ export function PatientsPage() {
   const [records, setRecords] = useState<PatientTestRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingRecord, setEditingRecord] = useState<PatientTestRecord | null>(null);
+  const [deletingRecord, setDeletingRecord] = useState<PatientTestRecord | null>(null);
   const [analysisRecord, setAnalysisRecord] = useState<PatientTestRecord | null>(null);
   const [activeFilter, setActiveFilter] = useState<RecordFilter>('All Records');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -268,6 +269,33 @@ export function PatientsPage() {
     }
   }
 
+  async function handleConfirmDelete() {
+    if (!deletingRecord) {
+      return;
+    }
+
+    const record = deletingRecord;
+    const recordKey = record.recordKey ?? record.recordId ?? record.id;
+    setDeletingRecord(null);
+
+    if (!record.recordId) {
+      setRecords((currentRecords) => currentRecords.filter((currentRecord) => (currentRecord.recordKey ?? currentRecord.recordId ?? currentRecord.id) !== recordKey));
+      pushToast('Imported record removed', 'success');
+      return;
+    }
+
+    try {
+      await deletePatientTest(record.recordId);
+      const savedRecords = await getPatientTests();
+      const stillExists = savedRecords.some((savedRecord) => savedRecord.recordId === record.recordId);
+
+      setRecords(savedRecords.map((savedRecord) => ({ ...savedRecord, recordKey: savedRecord.recordId })));
+      pushToast(stillExists ? 'Delete requested, but record still appears in the table' : 'Patient test record deleted', stillExists ? 'warning' : 'success');
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : 'Record could not be deleted', 'danger');
+    }
+  }
+
   const importButtonLabel =
     importButtonState === 'importing'
       ? 'Importing...'
@@ -418,6 +446,7 @@ export function PatientsPage() {
 
       <PatientTable
         isSearchActive={Boolean(searchQuery.trim()) || activeFilter !== 'All Records'}
+        onDeleteRecord={setDeletingRecord}
         onEditMetadata={setEditingRecord}
         onViewAnalysis={handleViewAnalysis}
         records={filteredRecords}
@@ -446,6 +475,33 @@ export function PatientsPage() {
         onClose={() => setAnalysisRecord(null)}
         record={analysisRecord}
       />
+
+      {deletingRecord ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/35 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-[#dfe7f2] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
+            <h2 className="text-lg font-extrabold text-[#07194c]">Delete Record</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#68779f]">
+              Delete patient test &quot;{deletingRecord.patientName || deletingRecord.id}&quot;? This will permanently remove the record and analysis file.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="h-10 rounded-md border border-[#d7deea] bg-white px-4 text-sm font-bold text-[#07194c] transition hover:bg-[#f8fbff]"
+                onClick={() => setDeletingRecord(null)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="h-10 rounded-md bg-red-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-red-700"
+                onClick={handleConfirmDelete}
+                type="button"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

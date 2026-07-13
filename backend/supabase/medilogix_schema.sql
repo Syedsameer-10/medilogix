@@ -63,6 +63,7 @@ create table if not exists public.patient_test_records (
   minimum_psi numeric not null,
   sample_count integer not null check (sample_count > 0),
   status text not null default 'Completed',
+  stimulation_current_ma text not null default '--',
   storage_file_path text not null default '',
   imported_at timestamptz not null,
   saved_at timestamptz not null default now(),
@@ -73,6 +74,7 @@ alter table public.patient_test_records
   add column if not exists case_history text not null default '',
   add column if not exists peak_psi numeric not null default 0,
   add column if not exists status text not null default 'Completed',
+  add column if not exists stimulation_current_ma text not null default '--',
   add column if not exists storage_file_path text not null default '';
 
 drop trigger if exists trg_prevent_duplicate_patient_file_id on public.patient_test_records;
@@ -97,6 +99,28 @@ alter table public.doctors enable row level security;
 alter table public.patient_test_records enable row level security;
 alter table public.patient_test_samples enable row level security;
 
+drop function if exists public.save_patient_test(
+  uuid,
+  uuid,
+  text,
+  text,
+  text,
+  integer,
+  text,
+  text,
+  text,
+  text,
+  numeric,
+  numeric,
+  numeric,
+  integer,
+  timestamptz,
+  timestamptz,
+  text,
+  text,
+  text
+);
+
 create or replace function public.save_patient_test(
   p_id uuid,
   p_doctor_id uuid,
@@ -116,6 +140,7 @@ create or replace function public.save_patient_test(
   p_saved_at timestamptz,
   p_source_file_name text,
   p_status text,
+  p_stimulation_current_ma text,
   p_storage_file_path text
 )
 returns public.patient_test_records
@@ -140,6 +165,7 @@ begin
     minimum_psi,
     sample_count,
     status,
+    stimulation_current_ma,
     storage_file_path,
     imported_at,
     saved_at,
@@ -161,6 +187,7 @@ begin
     p_minimum_psi,
     p_sample_count,
     p_status,
+    coalesce(nullif(p_stimulation_current_ma, ''), '--'),
     p_storage_file_path,
     p_imported_at,
     p_saved_at,

@@ -15,6 +15,7 @@ export interface PatientTestRecord {
   age: string;
   caseHistory: string;
   description: string;
+  stimulationCurrentMa?: string;
   testDate: string;
   testDuration: string;
   averagePsi?: number;

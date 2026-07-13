@@ -37,8 +37,8 @@ export function LoginPage() {
     try {
       await login(parsedValues.data.gmail, parsedValues.data.password);
       navigate('/patients', { replace: true });
-    } catch {
-      setErrorMessage('Invalid Gmail or password.');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Login is temporarily unavailable. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

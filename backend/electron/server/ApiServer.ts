@@ -190,6 +190,11 @@ export class MedilogixApiServer {
       return;
     }
 
+    if (method === 'DELETE' && recordMatch) {
+      await this.deletePatientTest(context, decodeURIComponent(recordMatch[1]));
+      return;
+    }
+
     this.sendJson(response, 404, { message: 'Route not found' });
   }
 
@@ -308,6 +313,29 @@ export class MedilogixApiServer {
     }
 
     this.sendJson(response, 200, { record });
+  }
+
+  private async deletePatientTest(context: RequestContext, recordId: string) {
+    const { doctor, response } = context;
+
+    if (!doctor) {
+      this.sendJson(response, 401, { message: 'Authentication required' });
+      return;
+    }
+
+    try {
+      const deleted = await this.database.deletePatientTest(recordId, doctor.id);
+
+      if (!deleted) {
+        this.sendJson(response, 404, { message: 'Record not found' });
+        return;
+      }
+
+      this.sendJson(response, 200, { deleted: true, recordId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Record could not be deleted';
+      this.sendJson(response, 500, { message });
+    }
   }
 
   private async authenticate(request: IncomingMessage) {
@@ -570,7 +598,7 @@ export class MedilogixApiServer {
     }
 
     response.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-    response.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, POST, OPTIONS');
+    response.setHeader('Access-Control-Allow-Methods', 'DELETE, GET, PATCH, POST, OPTIONS');
     response.setHeader('Access-Control-Max-Age', '86400');
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');

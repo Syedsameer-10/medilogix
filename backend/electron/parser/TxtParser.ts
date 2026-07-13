@@ -4,6 +4,7 @@ import type { PatientImportRecord } from './types/PatientImport';
 import type { TestReading } from './types/TestReading';
 
 const datePattern = /\b\d{2}\/\d{2}\/\d{2}\b/;
+const stimulationCurrentPattern = /^\s*mA\s*(?:-|:)\s*(--|-?\d+(?:\.\d+)?)\s*$/i;
 const readingPattern = /^\s*(\d{2}:\d{2}:\d{2})\s*,\s*(-?\d+(?:\.\d+)?)\s*,?\s*$/;
 
 export function parseTxtFile(filePath: string, content: string): PatientImportRecord {
@@ -17,6 +18,7 @@ export function parseTxtFile(filePath: string, content: string): PatientImportRe
 
   const dateLine = lines.find((line) => datePattern.test(line));
   const testDate = dateLine?.match(datePattern)?.[0];
+  const stimulationCurrentMa = lines.find((line) => stimulationCurrentPattern.test(line))?.match(stimulationCurrentPattern)?.[1] ?? '--';
 
   if (!testDate) {
     throw new Error('Test date not found');
@@ -45,6 +47,7 @@ export function parseTxtFile(filePath: string, content: string): PatientImportRe
     age: '',
     caseHistory: '',
     description: '',
+    stimulationCurrentMa,
     testDate,
     testDuration: statistics.testDuration,
     averagePsi: statistics.averagePsi,

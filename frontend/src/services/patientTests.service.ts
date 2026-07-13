@@ -49,3 +49,11 @@ export async function updatePatientTestMetadata(recordId: string, values: Pick<P
     throw new Error(getApiErrorMessage(error), { cause: error });
   }
 }
+
+export async function deletePatientTest(recordId: string) {
+  try {
+    await apiClient.delete(`/patient-tests/${encodeURIComponent(recordId)}`);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error), { cause: error });
+  }
+}

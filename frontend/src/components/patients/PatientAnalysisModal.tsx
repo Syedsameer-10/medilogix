@@ -55,7 +55,11 @@ export function PatientAnalysisModal({ isOpen, onClose, record }: PatientAnalysi
               </div>
             ))}
           </div>
-          <div className="ml-auto flex min-w-[220px] justify-end border-l border-[#dfe7f2] pl-8">
+          <div className="min-w-[160px] rounded-lg border border-[#dfe7f2] bg-white px-4 py-3 shadow-sm">
+            <p className="text-[10px] font-extrabold tracking-normal text-[#68779f]">mA</p>
+            <p className="mt-2 text-sm font-extrabold text-[#07194c]">{record.stimulationCurrentMa || '--'}</p>
+          </div>
+          <div className="ml-auto flex min-w-[160px] items-center justify-end border-l border-[#dfe7f2] pl-8">
             <div className="grid h-20 w-20 shrink-0 place-items-center rounded-lg border border-[#dfe7f2] bg-white p-3 shadow-sm">
               <img alt={`${doctor?.name ?? 'Hospital'} logo`} className="max-h-14 max-w-14 object-contain" src={hospitalLogo} />
             </div>

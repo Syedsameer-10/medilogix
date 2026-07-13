@@ -1,9 +1,10 @@
-import { FiActivity, FiChevronDown, FiChevronUp, FiEdit3, FiFileText } from 'react-icons/fi';
+import { FiActivity, FiChevronDown, FiChevronUp, FiEdit3, FiFileText, FiTrash2 } from 'react-icons/fi';
 import type { PatientTestRecord } from '../../types/patientTest';
 import { cn } from '../../utils/cn';
 
 interface PatientTableProps {
   isSearchActive?: boolean;
+  onDeleteRecord: (record: PatientTestRecord) => void;
   onEditMetadata: (record: PatientTestRecord) => void;
   onViewAnalysis: (record: PatientTestRecord) => void;
   records: PatientTestRecord[];
@@ -35,7 +36,7 @@ function StatusBadge({ status }: { status: PatientTestRecord['status'] }) {
   );
 }
 
-export function PatientTable({ isSearchActive = false, onEditMetadata, onViewAnalysis, records }: PatientTableProps) {
+export function PatientTable({ isSearchActive = false, onDeleteRecord, onEditMetadata, onViewAnalysis, records }: PatientTableProps) {
   if (records.length === 0) {
     return (
       <section className="rounded-xl border border-[#dfe7f2] bg-white px-6 py-14 text-center shadow-[0_16px_42px_rgba(15,23,42,0.06)]">
@@ -99,13 +100,12 @@ export function PatientTable({ isSearchActive = false, onEditMetadata, onViewAna
                   <div className="flex justify-end gap-2">
                     <button
                       aria-label={`Edit Patient's Info for patient ${record.id}`}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-[#d7deea] bg-white px-3 text-sm font-bold text-[#07194c] shadow-sm transition hover:border-[#0647ff] hover:bg-[#eef4ff] hover:text-[#0647ff]"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#d7deea] bg-white text-[#07194c] shadow-sm transition hover:border-[#0647ff] hover:bg-[#eef4ff] hover:text-[#0647ff]"
                       onClick={() => onEditMetadata(record)}
                       title="Edit Patient's Info"
                       type="button"
                     >
                       <FiEdit3 aria-hidden="true" size={16} />
-                      <span>Edit Patient&apos;s Info</span>
                     </button>
                     <button
                       aria-label={`View analysis for patient ${record.id}`}
@@ -116,6 +116,15 @@ export function PatientTable({ isSearchActive = false, onEditMetadata, onViewAna
                     >
                       <FiActivity aria-hidden="true" size={16} />
                       <span>View Analysis</span>
+                    </button>
+                    <button
+                      aria-label={`Delete patient ${record.id}`}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-white text-red-600 shadow-sm transition hover:border-red-400 hover:bg-red-50"
+                      onClick={() => onDeleteRecord(record)}
+                      title="Delete Record"
+                      type="button"
+                    >
+                      <FiTrash2 aria-hidden="true" size={16} />
                     </button>
                   </div>
                 </td>

@@ -1,22 +1,5 @@
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'patient-test-files',
-  'patient-test-files',
-  false,
-  52428800,
-  array['application/gzip', 'application/x-gzip', 'application/octet-stream']
-)
-on conflict (id) do update
-set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
 alter table public.patient_test_records
-  add column if not exists peak_psi numeric not null default 0,
-  add column if not exists status text not null default 'Completed',
-  add column if not exists stimulation_current_ma text not null default '--',
-  add column if not exists storage_file_path text not null default '';
+  add column if not exists stimulation_current_ma text not null default '--';
 
 drop function if exists public.save_patient_test(
   uuid,
@@ -38,25 +21,6 @@ drop function if exists public.save_patient_test(
   text,
   text,
   text
-);
-
-drop function if exists public.save_patient_test(
-  uuid,
-  uuid,
-  text,
-  text,
-  text,
-  integer,
-  text,
-  text,
-  text,
-  text,
-  numeric,
-  numeric,
-  timestamptz,
-  timestamptz,
-  text,
-  jsonb
 );
 
 create or replace function public.save_patient_test(

@@ -23,6 +23,7 @@ interface PatientImportRecord {
   age: '';
   caseHistory: '';
   description: '';
+  stimulationCurrentMa: string;
   testDate: string;
   testDuration: string;
   averagePsi: number;
