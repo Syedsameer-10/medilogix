@@ -203,7 +203,7 @@ export class MedilogixDatabase {
       },
     });
 
-    return rows[0] ? this.mapPatientTestWithSamples(rows[0]) : null;
+    return rows[0] ? this.mapPatientTestWithSamples(rows[0], doctorId) : null;
   }
 
   async createPatientTest(doctorId: string, input: PatientTestInput) {
@@ -233,27 +233,14 @@ export class MedilogixDatabase {
     }
 
     try {
-      const record = await this.rpc<PatientTestRow>('save_patient_test', {
-        p_age: Number(input.age),
-        p_average_psi: parsedRecord.averagePsi,
-        p_case_history: input.caseHistory,
-        p_description: input.description,
-        p_doctor_id: doctorId,
-        p_gender: input.gender,
-        p_id: recordId,
-        p_imported_at: input.importedAt,
-        p_minimum_psi: parsedRecord.minimumPsi,
-        p_patient_file_id: input.id,
-        p_patient_name: input.patientName,
-        p_peak_psi: parsedRecord.peakPsi,
-        p_sample_count: parsedRecord.sampleCount,
-        p_saved_at: savedAt,
-        p_source_file_name: sourceFileName,
-        p_status: 'Completed',
-        p_stimulation_current_ma: parsedRecord.stimulationCurrentMa,
-        p_storage_file_path: uploadedStoragePath,
-        p_test_date: parsedRecord.testDate,
-        p_test_duration: parsedRecord.testDuration,
+      const record = await this.savePatientTestMetadata({
+        doctorId,
+        input,
+        parsedRecord,
+        recordId,
+        savedAt,
+        sourceFileName,
+        uploadedStoragePath,
       });
 
       return this.mapPatientTestMetadata(record);
@@ -346,6 +333,81 @@ export class MedilogixDatabase {
     return rows[0] ? this.mapPatientTestMetadata(rows[0]) : null;
   }
 
+  private async savePatientTestMetadata({
+    doctorId,
+    input,
+    parsedRecord,
+    recordId,
+    savedAt,
+    sourceFileName,
+    uploadedStoragePath,
+  }: {
+    doctorId: string;
+    input: PatientTestInput;
+    parsedRecord: PatientImportRecord;
+    recordId: string;
+    savedAt: string;
+    sourceFileName: string;
+    uploadedStoragePath: string;
+  }) {
+    const rpcBody = {
+      p_age: Number(input.age),
+      p_average_psi: parsedRecord.averagePsi,
+      p_case_history: input.caseHistory,
+      p_description: input.description,
+      p_doctor_id: doctorId,
+      p_gender: input.gender,
+      p_id: recordId,
+      p_imported_at: input.importedAt,
+      p_minimum_psi: parsedRecord.minimumPsi,
+      p_patient_file_id: input.id,
+      p_patient_name: input.patientName,
+      p_peak_psi: parsedRecord.peakPsi,
+      p_sample_count: parsedRecord.sampleCount,
+      p_saved_at: savedAt,
+      p_source_file_name: sourceFileName,
+      p_status: 'Completed',
+      p_stimulation_current_ma: parsedRecord.stimulationCurrentMa,
+      p_storage_file_path: uploadedStoragePath,
+      p_test_date: parsedRecord.testDate,
+      p_test_duration: parsedRecord.testDuration,
+    };
+
+    try {
+      return await this.rpc<PatientTestRow>('save_patient_test', rpcBody);
+    } catch (error) {
+      if (!this.isLegacyPatientRecordSchemaError(error)) {
+        throw error;
+      }
+
+      const [row] = await this.request<PatientTestRow[]>('patient_test_records', {
+        body: {
+          age: Number(input.age),
+          average_psi: parsedRecord.averagePsi,
+          case_history: input.caseHistory,
+          description: input.description,
+          doctor_id: doctorId,
+          gender: input.gender,
+          id: recordId,
+          imported_at: input.importedAt,
+          minimum_psi: parsedRecord.minimumPsi,
+          patient_file_id: input.id,
+          patient_name: input.patientName,
+          sample_count: parsedRecord.sampleCount,
+          saved_at: savedAt,
+          source_file_name: sourceFileName,
+          stimulation_current_ma: parsedRecord.stimulationCurrentMa,
+          test_date: parsedRecord.testDate,
+          test_duration: parsedRecord.testDuration,
+        },
+        method: 'POST',
+        prefer: 'return=representation',
+      });
+
+      return row;
+    }
+  }
+
   async deletePatientTest(recordId: string, doctorId: string) {
     const rows = await this.findPatientTestForDelete(recordId, doctorId);
     const record = rows[0];
@@ -395,6 +457,17 @@ export class MedilogixDatabase {
         },
       });
     }
+  }
+
+  private isLegacyPatientRecordSchemaError(error: unknown) {
+    const message = error instanceof Error ? error.message : '';
+
+    return (
+      message.includes('peak_psi') ||
+      message.includes('status') ||
+      message.includes('storage_file_path') ||
+      message.includes('schema cache')
+    );
   }
 
   private async seedDefaultDoctor() {
@@ -456,15 +529,17 @@ export class MedilogixDatabase {
     };
   }
 
-  private async mapPatientTestWithSamples(row: PatientTestRow): Promise<PatientTestRecord> {
-    if (!row.storage_file_path) {
+  private async mapPatientTestWithSamples(row: PatientTestRow, doctorId?: string): Promise<PatientTestRecord> {
+    const storageFilePath = row.storage_file_path || (doctorId ? this.createPatientTestStoragePath(doctorId, row.id, row.source_file_name ?? `${row.patient_file_id}.txt`) : '');
+
+    if (!storageFilePath) {
       throw new Error('Analysis file is not available for this patient test');
     }
 
     let decompressedText: string;
 
     try {
-      const compressedBuffer = await this.storage.downloadCompressedFile(row.storage_file_path);
+      const compressedBuffer = await this.storage.downloadCompressedFile(storageFilePath);
       decompressedText = (await decompressBuffer(compressedBuffer)).toString('utf8');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Compressed TXT download failed';
