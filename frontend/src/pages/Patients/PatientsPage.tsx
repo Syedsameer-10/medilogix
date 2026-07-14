@@ -479,9 +479,11 @@ export function PatientsPage() {
       {deletingRecord ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/35 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-xl border border-[#dfe7f2] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
-            <h2 className="text-lg font-extrabold text-[#07194c]">Delete Record</h2>
+            <h2 className="text-lg font-extrabold text-[#07194c]">{deletingRecord.recordId ? 'Delete Record' : 'Remove Import'}</h2>
             <p className="mt-2 text-sm font-medium leading-6 text-[#68779f]">
-              Delete patient test &quot;{deletingRecord.patientName || deletingRecord.id}&quot;? This will permanently remove the record and analysis file.
+              {deletingRecord.recordId
+                ? `Delete patient test "${deletingRecord.patientName || deletingRecord.id}"? This will permanently remove the record and analysis file.`
+                : `Remove imported TXT "${deletingRecord.id}" from this list? It has not been saved to the database yet.`}
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
@@ -496,7 +498,7 @@ export function PatientsPage() {
                 onClick={handleConfirmDelete}
                 type="button"
               >
-                Delete
+                {deletingRecord.recordId ? 'Delete' : 'Remove'}
               </button>
             </div>
           </div>

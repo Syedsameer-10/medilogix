@@ -118,10 +118,10 @@ export function PatientTable({ isSearchActive = false, onDeleteRecord, onEditMet
                       <span>View Analysis</span>
                     </button>
                     <button
-                      aria-label={`Delete patient ${record.id}`}
+                      aria-label={record.recordId ? `Delete patient ${record.id}` : `Remove imported patient ${record.id}`}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 bg-white text-red-600 shadow-sm transition hover:border-red-400 hover:bg-red-50"
                       onClick={() => onDeleteRecord(record)}
-                      title="Delete Record"
+                      title={record.recordId ? 'Delete Record' : 'Remove Import'}
                       type="button"
                     >
                       <FiTrash2 aria-hidden="true" size={16} />
