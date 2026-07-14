@@ -347,14 +347,7 @@ export class MedilogixDatabase {
   }
 
   async deletePatientTest(recordId: string, doctorId: string) {
-    const rows = await this.request<PatientTestRow[]>('patient_test_records', {
-      query: {
-        doctor_id: `eq.${doctorId}`,
-        id: `eq.${recordId}`,
-        limit: '1',
-        select: 'id,storage_file_path',
-      },
-    });
+    const rows = await this.findPatientTestForDelete(recordId, doctorId);
     const record = rows[0];
 
     if (!record) {
@@ -374,6 +367,34 @@ export class MedilogixDatabase {
     });
 
     return true;
+  }
+
+  private async findPatientTestForDelete(recordId: string, doctorId: string) {
+    try {
+      return await this.request<PatientTestRow[]>('patient_test_records', {
+        query: {
+          doctor_id: `eq.${doctorId}`,
+          id: `eq.${recordId}`,
+          limit: '1',
+          select: 'id,storage_file_path',
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+
+      if (!message.includes('storage_file_path')) {
+        throw error;
+      }
+
+      return this.request<PatientTestRow[]>('patient_test_records', {
+        query: {
+          doctor_id: `eq.${doctorId}`,
+          id: `eq.${recordId}`,
+          limit: '1',
+          select: 'id',
+        },
+      });
+    }
   }
 
   private async seedDefaultDoctor() {
