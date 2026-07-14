@@ -33,9 +33,21 @@ export async function loginDoctor(gmail: string, password: string) {
 }
 
 export async function getCurrentDoctor() {
-  const response = await apiClient.get<{ doctor: Doctor }>('/auth/me');
+  try {
+    const response = await apiClient.get<{ doctor: Doctor }>('/auth/me');
 
-  return response.data.doctor;
+    return response.data.doctor;
+  } catch (error) {
+    if (typeof error === 'object' && error) {
+      const axiosError = error as { response?: { status?: number } };
+
+      if (axiosError.response?.status === 401) {
+        throw new Error('Session expired', { cause: error });
+      }
+    }
+
+    throw new Error('Session check temporarily unavailable', { cause: error });
+  }
 }
 
 export async function registerDoctor(values: RegisterDoctorInput) {

@@ -43,10 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setDoctor(currentDoctor);
         localStorage.setItem(doctorStorageKey, JSON.stringify(currentDoctor));
       })
-      .catch(() => {
-        localStorage.removeItem(authTokenStorageKey);
-        localStorage.removeItem(doctorStorageKey);
-        setDoctor(null);
+      .catch((error) => {
+        if (error instanceof Error && error.message === 'Session expired') {
+          localStorage.removeItem(authTokenStorageKey);
+          localStorage.removeItem(doctorStorageKey);
+          setDoctor(null);
+        }
       })
       .finally(() => setIsCheckingSession(false));
   }, []);

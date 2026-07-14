@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 
 const tokenHeader = { alg: 'HS256', typ: 'JWT' };
-const tokenTtlSeconds = 60 * 60 * 12;
+const tokenTtlSeconds = 60 * 60 * 24 * 90;
 const passwordIterations = 120_000;
 const passwordKeyLength = 32;
 
