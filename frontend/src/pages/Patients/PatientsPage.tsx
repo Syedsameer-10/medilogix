@@ -400,17 +400,17 @@ export function PatientsPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3 lg:min-w-[520px]">
-              <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
-                <p className="text-xs font-bold uppercase text-[#68779f]">Status</p>
-                <p className="mt-2 text-base font-extrabold text-[#07194c]">{usbConnectionStatus}</p>
+              <div className="min-w-0 rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
+                <p className="break-words text-xs font-bold uppercase leading-5 text-[#68779f]">Status</p>
+                <p className="mt-2 break-words text-base font-extrabold text-[#07194c]">{usbConnectionStatus}</p>
               </div>
-              <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
-                <p className="text-xs font-bold uppercase text-[#68779f]">TXT Files Found</p>
-                <p className="mt-2 text-base font-extrabold text-[#07194c]">{displayedTxtFilesFound}</p>
+              <div className="min-w-0 rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
+                <p className="break-words text-xs font-bold uppercase leading-5 text-[#68779f]">TXT Files Found</p>
+                <p className="mt-2 break-words text-base font-extrabold text-[#07194c]">{displayedTxtFilesFound}</p>
               </div>
-              <div className="rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
-                <p className="text-xs font-bold uppercase text-[#68779f]">Drive</p>
-                <p className="mt-2 text-base font-extrabold text-[#07194c]">{usbDriveLetter}</p>
+              <div className="min-w-0 rounded-lg border border-[#e7edf6] bg-[#f8fbff] p-4">
+                <p className="break-words text-xs font-bold uppercase leading-5 text-[#68779f]">Drive</p>
+                <p className="mt-2 break-words text-base font-extrabold text-[#07194c]">{usbDriveLetter}</p>
               </div>
             </div>
           </div>
